@@ -162,33 +162,36 @@ class AppBtn extends StatelessWidget {
     Widget button = _CustomFocusBuilder(
       focusNode: focusNode,
       onFocusChanged: onFocusChanged,
-      builder: (context, focus) => Stack(
-        children: [
-          Opacity(
-            opacity: onPressed == null ? 0.5 : 1.0,
-            child: TextButton(
-              onPressed: onPressed,
-              style: style,
-              focusNode: focus,
-              child: DefaultTextStyle(
-                style: DefaultTextStyle.of(context).style.copyWith(color: textColor),
-                child: content,
-              ),
-            ),
+      builder: (context, focus) {
+        Widget btn = TextButton(
+          onPressed: onPressed,
+          style: style,
+          focusNode: focus,
+          child: DefaultTextStyle(
+            style: DefaultTextStyle.of(context).style.copyWith(color: textColor),
+            child: content,
           ),
-          if (focus.hasFocus)
-            Positioned.fill(
-              child: IgnorePointerAndSemantics(
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular($styles.corners.md),
-                    border: Border.all(color: $styles.colors.accent1, width: 3),
+        );
+        if (onPressed == null) {
+          btn = Opacity(opacity: 0.5, child: btn);
+        }
+        return Stack(
+          children: [
+            btn,
+            if (focus.hasFocus)
+              Positioned.fill(
+                child: IgnorePointerAndSemantics(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular($styles.corners.md),
+                      border: Border.all(color: $styles.colors.accent1, width: 3),
+                    ),
                   ),
                 ),
               ),
-            ),
-        ],
-      ),
+          ],
+        );
+      },
     );
 
     // add press effect:
@@ -224,16 +227,17 @@ class _ButtonPressEffectState extends State<_ButtonPressEffect> {
 
   @override
   Widget build(BuildContext context) {
+    Widget child = ExcludeSemantics(child: widget.child);
+    if (_isDown) {
+      child = Opacity(opacity: 0.7, child: child);
+    }
     return GestureDetector(
       excludeFromSemantics: true,
       onTapDown: (_) => setState(() => _isDown = true),
       onTapUp: (_) => setState(() => _isDown = false), // not called, TextButton swallows this.
       onTapCancel: () => setState(() => _isDown = false),
       behavior: HitTestBehavior.translucent,
-      child: Opacity(
-        opacity: _isDown ? 0.7 : 1,
-        child: ExcludeSemantics(child: widget.child),
-      ),
+      child: child,
     );
   }
 }
