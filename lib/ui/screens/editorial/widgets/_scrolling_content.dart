@@ -343,10 +343,10 @@ class RenderSliverBackgroundColor extends RenderProxySliver {
   Color get color => _color;
   Color _color;
   set color(Color value) {
-    if (value == color) {
+    if (value == _color) {
       return;
     }
-    _color = color;
+    _color = value;
     markNeedsPaint();
   }
 
