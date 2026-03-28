@@ -200,26 +200,35 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           final wonder = _wonders[index % _wonders.length];
           final wonderType = wonder.type;
           bool isShowing = _isSelected(wonderType);
-          return _swipeController.buildListener(
-            builder: (swipeAmt, _, child) {
-              final config = WonderIllustrationConfig.mg(
-                isShowing: isShowing,
-                zoom: .05 * swipeAmt,
-              );
-              return WonderIllustration(wonderType, config: config);
-            },
+          return RepaintBoundary(
+            child: _swipeController.buildListener(
+              builder: (swipeAmt, _, child) {
+                final config = WonderIllustrationConfig.mg(
+                  isShowing: isShowing,
+                  zoom: .05 * swipeAmt,
+                );
+                return WonderIllustration(wonderType, config: config);
+              },
+            ),
           );
         },
       ),
     );
   }
 
+  Set<int> get _visibleIndices => {
+        (_wonderIndex - 1) % _numWonders,
+        _wonderIndex,
+        (_wonderIndex + 1) % _numWonders,
+      };
+
   List<Widget> _buildBgAndClouds() {
+    final visible = _visibleIndices;
     return [
-      // Background
-      ..._wonders.map((e) {
-        final config = WonderIllustrationConfig.bg(isShowing: _isSelected(e.type));
-        return WonderIllustration(e.type, config: config);
+      // Background — only build nearby wonders instead of all 8
+      ..._wonders.asMap().entries.where((e) => visible.contains(e.key)).map((e) {
+        final config = WonderIllustrationConfig.bg(isShowing: _isSelected(e.value.type));
+        return WonderIllustration(e.value.type, config: config);
       }),
       // Clouds
       FractionallySizedBox(
@@ -259,6 +268,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     }
 
     final gradientColor = currentWonder.type.bgColor;
+    final visible = _visibleIndices;
     return Stack(
       children: [
         /// Foreground gradient-1, gets darker when swiping up
@@ -266,18 +276,18 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           child: buildSwipeableBgGradient(gradientColor.withValues(alpha: .65)),
         ),
 
-        /// Foreground decorators
-        ..._wonders.map((e) {
+        /// Foreground decorators — only build nearby wonders instead of all 8
+        ..._wonders.asMap().entries.where((e) => visible.contains(e.key)).map((e) {
           return _swipeController.buildListener(
             builder: (swipeAmt, _, child) {
               final config = WonderIllustrationConfig.fg(
-                isShowing: _isSelected(e.type),
+                isShowing: _isSelected(e.value.type),
                 zoom: .4 * (_swipeOverride ?? swipeAmt),
               );
               return Animate(
                 effects: const [FadeEffect()],
                 onPlay: _handleFadeAnimInit,
-                child: IgnorePointerAndSemantics(child: WonderIllustration(e.type, config: config)),
+                child: IgnorePointerAndSemantics(child: WonderIllustration(e.value.type, config: config)),
               );
             },
           );
@@ -359,17 +369,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                 return FractionallySizedBox(
                                   alignment: Alignment.bottomCenter,
                                   heightFactor: heightFactor,
-                                  child: Opacity(opacity: swipeAmt * .5, child: child),
+                                  child: VtGradient(
+                                    [
+                                      $styles.colors.white.withValues(alpha: 0),
+                                      $styles.colors.white.withValues(alpha: swipeAmt * .5),
+                                    ],
+                                    const [.3, 1],
+                                    borderRadius: BorderRadius.circular(99),
+                                  ),
                                 );
                               },
-                              child: VtGradient(
-                                [
-                                  $styles.colors.white.withValues(alpha: 0),
-                                  $styles.colors.white.withValues(alpha: 1),
-                                ],
-                                const [.3, 1],
-                                borderRadius: BorderRadius.circular(99),
-                              ),
                             ),
                           ),
 
