@@ -109,6 +109,8 @@ class _WonderEditorialScreenState extends State<WonderEditorialScreen> {
                       builder: (_, value, child) {
                         // get some value between 0 and 1, based on the amt scrolled
                         double opacity = (1 - value / 700).clamp(0, 1);
+                        if (opacity <= 0) return const SizedBox.shrink();
+                        if (opacity >= 1) return child!;
                         return Opacity(opacity: opacity, child: child);
                       },
                       // This is due to a bug: https://github.com/flutter/flutter/issues/101872
@@ -148,12 +150,15 @@ class _WonderEditorialScreenState extends State<WonderEditorialScreen> {
                                     builder: (_, value, child) {
                                       double offsetAmt = max(0, value * .3);
                                       double opacity = (1 - offsetAmt / 150).clamp(0, 1);
+                                      if (opacity <= 0) return const SizedBox.shrink();
                                       return Transform.translate(
                                         offset: Offset(0, offsetAmt),
-                                        child: Opacity(opacity: opacity, child: child),
+                                        child: opacity >= 1 ? child! : Opacity(opacity: opacity, child: child),
                                       );
                                     },
-                                    child: _TitleText(widget.data, scroller: _scroller),
+                                    child: RepaintBoundary(
+                                      child: _TitleText(widget.data, scroller: _scroller),
+                                    ),
                                   ),
                                 ),
 
