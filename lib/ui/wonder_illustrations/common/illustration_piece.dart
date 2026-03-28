@@ -63,24 +63,32 @@ class IllustrationPiece extends StatefulWidget {
 
 class _IllustrationPieceState extends State<IllustrationPiece> {
   double? aspectRatio = 1;
-  bool aspectRatioLoadCalled = false;
+  String? _lastImgPath;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final wonderBuilder = context.read<WonderIllustrationBuilderState>();
+    final type = wonderBuilder.widget.wonderType;
+    final imgPath = '${type.assetPath}/${widget.fileName}';
+    if (imgPath != _lastImgPath) {
+      _lastImgPath = imgPath;
+      _loadAspectRatio(imgPath);
+    }
+  }
+
+  Future<void> _loadAspectRatio(String imgPath) async {
+    final img = await rootBundle.load(imgPath);
+    final image = await decodeImageFromList(img.buffer.asUint8List());
+    if (!mounted) return;
+    setState(() => aspectRatio = image.width / image.height);
+  }
 
   @override
   Widget build(BuildContext context) {
     final wonderBuilder = context.watch<WonderIllustrationBuilderState>();
     final type = wonderBuilder.widget.wonderType;
     final imgPath = '${type.assetPath}/${widget.fileName}';
-    // Dynamically determine the aspect ratio of the image, so we can more easily position it
-    if (!aspectRatioLoadCalled) {
-      setState(
-        () => aspectRatioLoadCalled = true,
-      ); // indicates load has started, so we don't run twice
-      rootBundle.load(imgPath).then((img) async {
-        var image = await decodeImageFromList(img.buffer.asUint8List());
-        if (!mounted) return;
-        setState(() => aspectRatio = image.width / image.height);
-      });
-    }
     return Align(
       alignment: widget.alignment,
       child: LayoutBuilder(
@@ -89,14 +97,6 @@ class _IllustrationPieceState extends State<IllustrationPiece> {
           final anim = wonderBuilder.anim;
           final curvedAnim = Curves.easeOut.transform(anim.value);
           final config = wonderBuilder.widget.config;
-          Widget img = Image.asset(
-            imgPath,
-            excludeFromSemantics: true,
-            opacity: anim,
-            fit: BoxFit.fitHeight,
-          );
-          // Add overflow box so image doesn't get clipped as we translate it around
-          img = OverflowBox(maxWidth: 2500, child: img);
 
           final double introZoom = (widget.initialScale - 1) * (1 - curvedAnim);
 
@@ -105,6 +105,17 @@ class _IllustrationPieceState extends State<IllustrationPiece> {
             widget.minHeight ?? 0,
             constraints.maxHeight * widget.heightFactor,
           );
+
+          final int cacheH = (height * MediaQuery.devicePixelRatioOf(context)).round().clamp(1, 2048);
+          Widget img = Image.asset(
+            imgPath,
+            excludeFromSemantics: true,
+            opacity: anim,
+            fit: BoxFit.fitHeight,
+            cacheHeight: cacheH,
+          );
+          // Add overflow box so image doesn't get clipped as we translate it around
+          img = OverflowBox(maxWidth: 2500, child: img);
 
           /// Combine all the translations, initial + offset + dynamicHzOffset + fractionalOffset
           Offset finalTranslation = widget.offset;
