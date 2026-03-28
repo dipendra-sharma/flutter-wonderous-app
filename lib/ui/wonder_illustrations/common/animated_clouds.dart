@@ -80,10 +80,18 @@ class _AnimatedCloudsState extends State<AnimatedClouds> with SingleTickerProvid
       final stOffset = _clouds.indexOf(c) % 2 == 0 ? -startOffset : startOffset;
       // If old, we will end at the stOffset and start at 0, if new, start at stOffset, and end at 0
       double curvedValue = Curves.easeOut.transform(_anim.value);
+      final animOpacity = isOld ? 1 - _anim.value : _anim.value;
       return Positioned(
         top: c.pos.dy,
         left: isOld ? c.pos.dx - stOffset * curvedValue : c.pos.dx + stOffset * (1 - curvedValue),
-        child: Opacity(opacity: isOld ? 1 - _anim.value : _anim.value, child: c),
+        child: _Cloud(
+          c.pos,
+          scale: c.scale,
+          flipX: c.flipX,
+          flipY: c.flipY,
+          opacity: c.opacity * animOpacity,
+          size: c.size,
+        ),
       );
     }
 
